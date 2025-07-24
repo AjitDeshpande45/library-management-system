@@ -1,0 +1,61 @@
+name: Library-Management-System
+
+on: 
+  push:
+    branches:
+    - 'feature/**'
+    - 'main'
+  
+jobs: 
+  ci:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v3
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.44.0_Linux-64bit.deb
+          sudo dpkg -i trivy_0.44.0_Linux-64bit.deb
+
+      - name: Trivy FS scan (source files)
+        run: trivy fs . --severity HIGH,CRITICAL --exit-code 1
+
+      - name: 'Install Docker on runners'
+        run: |
+          sudo apt-get update
+          sudo apt-get install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_EMAIL }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 'Build Docker Image'
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t library-management-system:$IMAGE_TAG .
+          docker push library-management-system:$IMAGE_TAG
+
+      - name: Scan Docker image with Trivy
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL library-management-system:latest
+
+  deploy: 
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy APP On PROD
+        run: echo "Deploying app after merge to main!"
+    

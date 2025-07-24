@@ -45,14 +45,15 @@ jobs:
           username: ${{ secrets.DOCKER_EMAIL }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: 'Build Docker Image'
-        run: |
-          IMAGE_TAG=${{ github.sha }}
-          docker build -t library-management-system:$IMAGE_TAG .
-          docker push library-management-system:$IMAGE_TAG
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_EMAIL }}/library-management-system:${{ github.sha }}
 
       - name: Scan Docker image with Trivy
-        run: trivy image --exit-code 1 --severity HIGH,CRITICAL library-management-system:latest
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL library-management-system:${{ github.sha }}
 
   deploy: 
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

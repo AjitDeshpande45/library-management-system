@@ -50,7 +50,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_EMAIL }}/library-management-system:${{ github.sha }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/library-management-system:${{ github.sha }}
 
       - name: Scan Docker image with Trivy
         run: trivy image --exit-code 1 --severity HIGH,CRITICAL library-management-system:${{ github.sha }}

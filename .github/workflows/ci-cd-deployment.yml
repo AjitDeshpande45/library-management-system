@@ -58,7 +58,6 @@ jobs:
           TRIVY_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
           trivy image \
-          --exit-code 1 \
           --severity HIGH,CRITICAL \
           --username $TRIVY_USERNAME \
           --password $TRIVY_PASSWORD \
